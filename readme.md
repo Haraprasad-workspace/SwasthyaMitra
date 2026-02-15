@@ -42,9 +42,38 @@ npm install
 # Create a .env file (refer to the env setup guide provided)
 npm run dev
 ```
+
 ## Backend setup
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
+
+## Backend .env setup
+```bash
+# Server Configuration
+PORT=
+NODE_ENV=
+JWT_SECRET=
+
+# Database
+MONGO_URL=
+
+# Frontend Connection
+FRONTEND_URL=
+
+# Twilio SMS Gateway (Real SMS)
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_PHONE_NUMBER=
+
+# Cloudinary (Medical Reports & X-Rays)
+CLOUDINARY_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+
+# Email Service (Nodemailer)
+EMAIL_USER=
+EMAIL_PASS=
+``
