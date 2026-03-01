@@ -7,8 +7,22 @@ import { API_BASE_URL } from './config/runtime'
 
 axios.interceptors.request.use((config) => {
   if (typeof config.url === 'string' && config.url.startsWith('http://localhost:5000')) {
-    config.url = config.url.replace('http://localhost:5000', API_BASE_URL)
+    if (API_BASE_URL) {
+      config.url = config.url.replace('http://localhost:5000', API_BASE_URL)
+    } else {
+      config.url = config.url.replace('http://localhost:5000', '')
+    }
   }
+
+  if (
+    typeof window !== 'undefined' &&
+    window.location.protocol === 'https:' &&
+    typeof config.url === 'string' &&
+    config.url.startsWith('http://')
+  ) {
+    config.url = config.url.replace(/^http:\/\//, 'https://')
+  }
+
   return config
 })
 
