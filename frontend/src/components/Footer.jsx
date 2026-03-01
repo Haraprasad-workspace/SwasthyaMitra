@@ -16,7 +16,7 @@ const Footer = () => {
             </span>
           </div>
           <p className="text-[9px] font-black uppercase tracking-[0.1em] text-khaki">
-            Designed & Developed by <span className="text-marigold">Haraprasad Mahapatra</span>
+            Designed & Developed by <span className="text-marigold">The Intelliverse</span>
           </p>
         </div>
 
