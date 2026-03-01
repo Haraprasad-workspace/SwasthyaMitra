@@ -15,16 +15,90 @@ const isProduction = process.env.NODE_ENV === 'production';
 let server = null;
 let io = null;
 
-const allowedOrigins = (process.env.CORS_ORIGINS || process.env.FRONTEND_URL || 'http://localhost:5173')
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+const normalizeOrigin = (origin) => {
+    if (!origin || typeof origin !== 'string') {
+        return '';
+    }
+
+    const trimmedOrigin = origin.trim().replace(/\/+$/, '');
+    if (!trimmedOrigin) {
+        return '';
+    }
+
+    try {
+        const parsed = new URL(trimmedOrigin);
+        return `${parsed.protocol}//${parsed.host}`.toLowerCase();
+    } catch {
+        return trimmedOrigin.toLowerCase();
+    }
+};
+
+const parseAllowedOrigins = (value) => {
+    if (!value) {
+        return [];
+    }
+
+    return value
+        .split(',')
+        .map((origin) => normalizeOrigin(origin))
+        .filter(Boolean);
+};
+
+const allowedOrigins = new Set([
+    ...parseAllowedOrigins(process.env.CORS_ORIGINS),
+    ...parseAllowedOrigins(process.env.FRONTEND_URL),
+    normalizeOrigin('http://localhost:5173')
+]);
+
+const frontendHost = normalizeOrigin(process.env.FRONTEND_URL || '');
+let vercelProjectPrefix = '';
+
+if (frontendHost.includes('.vercel.app')) {
+    try {
+        vercelProjectPrefix = new URL(frontendHost).hostname.split('.vercel.app')[0];
+    } catch {
+        vercelProjectPrefix = '';
+    }
+}
+
+const isAllowedVercelPreviewOrigin = (origin) => {
+    if (!origin || !vercelProjectPrefix) {
+        return false;
+    }
+
+    try {
+        const hostname = new URL(origin).hostname.toLowerCase();
+        if (!hostname.endsWith('.vercel.app')) {
+            return false;
+        }
+
+        return hostname === `${vercelProjectPrefix}.vercel.app`
+            || hostname.startsWith(`${vercelProjectPrefix}-`);
+    } catch {
+        return false;
+    }
+};
+
+const isOriginAllowed = (origin) => {
+    if (!origin) {
+        return true;
+    }
+
+    const normalizedOrigin = normalizeOrigin(origin);
+    return allowedOrigins.has(normalizedOrigin) || isAllowedVercelPreviewOrigin(normalizedOrigin);
+};
 
 const corsOptions = {
     origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) {
+        if (isOriginAllowed(origin)) {
             return callback(null, true);
         }
+
+        if (!isProduction) {
+            console.warn(`CORS blocked origin: ${origin}`);
+            console.warn(`Allowed origins: ${Array.from(allowedOrigins).join(', ')}`);
+        }
+
         return callback(new Error('CORS origin not allowed'));
     },
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'PUT', 'OPTIONS'],
@@ -36,7 +110,12 @@ if (!isVercel) {
     server = http.createServer(app); // 🔑 Create HTTP server
     io = new Server(server, {
         cors: {
-            origin: allowedOrigins,
+            origin: (origin, callback) => {
+                if (isOriginAllowed(origin)) {
+                    return callback(null, true);
+                }
+                return callback(new Error('Socket origin not allowed'));
+            },
             methods: ["GET", "POST", "PATCH", "DELETE"]
         }
     });
